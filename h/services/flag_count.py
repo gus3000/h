@@ -49,5 +49,15 @@ class FlagCountService(object):
         return flag_counts
 
 
+class PreloadedFlagCountService(object):
+
+    def __init__(self, service, annotation_ids):
+        self._flag_counts = service.flag_counts(annotation_ids)
+
+    def flag_count(self, annotation):
+        assert annotation.id in self._flag_counts
+        return self._flag_counts[annotation.id]
+
+
 def flag_count_service_factory(context, request):
     return FlagCountService(request.db)
