@@ -37,7 +37,7 @@ class UserSignupService(object):
         self.password_service = password_service
         self.stats = stats
 
-    def signup(self, require_activation=True, **kwargs):
+    def signup(self, require_activation=False, **kwargs):
         """
         Create a new user.
 
