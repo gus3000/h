@@ -12,6 +12,7 @@ from h.models.group import (
     GROUP_DESCRIPTION_MAX_LENGTH,
     GROUP_NAME_MIN_LENGTH,
     GROUP_NAME_MAX_LENGTH,
+    GROUP_CATEGORIES_MAX_LENGTH
 )
 
 
@@ -59,7 +60,20 @@ def group_schema(autofocus_name=False):
             min_length=0,
             max_length=GROUP_DESCRIPTION_MAX_LENGTH))
 
+    categories = colander.SchemaNode(
+        colander.String(),
+        name='categories',
+        title=_("Categories"),
+        validator=validators.Length(max=GROUP_CATEGORIES_MAX_LENGTH),
+        missing=None,
+        widget=deform.widget.TextAreaWidget(
+            css_class="group-form__description-input", # TODO change
+            label_css_class="group-form__description-label", # TODO change
+            min_length=0,
+            max_length=GROUP_CATEGORIES_MAX_LENGTH))
+
     schema.add(name)
     schema.add(description)
+    schema.add(categories)
 
     return schema

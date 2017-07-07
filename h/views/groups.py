@@ -74,6 +74,7 @@ class GroupEditController(object):
         self.form = request.create_form(self.schema,
                                         buttons=(_('Save'),),
                                         use_inline_editing=True)
+        self.lapin = 'LAAAAPIIIIIN'
 
     @view_config(request_method='GET')
     def get(self):
@@ -95,6 +96,7 @@ class GroupEditController(object):
     def _template_data(self):
         return {
             'form': self.form.render(),
+            'lapin': self.lapin,
             'group_path': self.request.route_path('group_read',
                                                   pubid=self.group.pubid,
                                                   slug=self.group.slug)

@@ -301,6 +301,22 @@
 {% endblock %}
 
 {% block scripts %}
+  <script>
+  /*
+  window.hypothesisConfig = function () {
+    return {
+      branding: {
+        appBackgroundColor: 'red',
+        ctaBackgroundColor: 'blue',
+        ctaTextColor: 'green',
+        selectionFontFamily: 'helvetica, arial, sans serif'
+      }
+    };
+  }; //*/
+  </script>
+  <script async src="http://localhost:5000/embed.js">
+  
+  </script> {# TODO changer url pour une variable #}
   {% for url in asset_urls("front_page_js") %}
   <script src="{{ url }}"></script>
   {% endfor %}
