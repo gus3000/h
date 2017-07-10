@@ -29,6 +29,7 @@ class TestUserSignupService(object):
 
         assert user is not None
 
+    @pytest.mark.skip(reason="email on signup is currently disabled")
     def test_signup_creates_activation_for_user(self, svc):
         user = svc.signup(username='foo', email='foo@bar.com')
 
@@ -60,14 +61,16 @@ class TestUserSignupService(object):
 
         user_password_service.update_password.assert_called_once_with(user, 'wibble')
         assert user.password == 'fakehash'
-
+    
+    @pytest.mark.skip(reason="email on signup is currently disabled")
     def test_passes_user_info_to_signup_email(self, svc, signup_email):
         user = svc.signup(username='foo', email='foo@bar.com')
 
         signup_email.assert_called_once_with(id=user.id,
                                              email='foo@bar.com',
                                              activation_code=user.activation.code)
-
+    
+    @pytest.mark.skip(reason="email on signup is currently disabled")
     def test_signup_sends_email(self, mailer, svc):
         svc.signup(username='foo', email='foo@bar.com')
 
