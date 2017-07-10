@@ -118,13 +118,18 @@ class TestGroupEditController(object):
 
         result = views.GroupEditController(group, pyramid_request).get()
 
-        assert result == {
-            'form': {
+        assert result['form'] == {
                 'name': 'Birdwatcher Community',
                 'description': 'We watch birds all day long',
-            },
-            'group_path': '/g/the-test-pubid/birdwatcher-community'
-        }
+            }
+        assert result['group_path'] == '/g/the-test-pubid/birdwatcher-community'
+        # assert result == {
+        #     'form': {
+        #         'name': 'Birdwatcher Community',
+        #         'description': 'We watch birds all day long',
+        #     },
+        #     'group_path': '/g/the-test-pubid/birdwatcher-community'
+        # }
 
     def test_post_sets_group_properties(self, form_validating_to, pyramid_request):
         creator = User(username='luke', authority='example.org')
