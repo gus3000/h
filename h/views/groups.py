@@ -95,8 +95,8 @@ class GroupEditController(object):
 
     def _template_data(self):
         return {
-            'form': self.form.render(),
             'lapin': self.lapin,
+            'form': self.form.render(),
             'group_path': self.request.route_path('group_read',
                                                   pubid=self.group.pubid,
                                                   slug=self.group.slug)
