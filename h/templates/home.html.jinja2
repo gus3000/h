@@ -19,6 +19,7 @@
 
 
 {% block header %}
+{#
   <header class="banner hiring">
     <div class="container">
       <span>
@@ -27,7 +28,7 @@
       </span>
     </div>
   </header>
-
+#}
   <header class="navbar navbar-default navbar-static-top">
     <div class="container">
       <div class="navbar-header">
@@ -39,12 +40,13 @@
           <span class="icon-bar"></span>
         </button>
         <a class="navbar-brand" href="{{ base_url }}">
-          Hypothes<span class="red">.</span>is
+          Hyperthesis
         </a>
       </div>
       <nav class="collapse navbar-collapse">
         <div class="menu-main-menu-container">
           <ul id="menu-main-menu" class="nav navbar-nav">
+	  {#
             <li id="menu-item-3607"
                 class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3607">
               <a href="{{ request.route_url('about') }}">About</a>
@@ -73,6 +75,7 @@
                 class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3615">
               <a href="{{ request.route_url('help-center') }}" target='_blank'>Help</a>
             </li>
+	    #}
           </ul>
         </div>
         <ul class="nav navbar-nav pull-right login">
@@ -113,8 +116,7 @@
                 collaborate, organize your research, or take personal notes.
               </p>
 
-              <section class="installer">
-
+{#              <section class="installer">
                 <span class="hidden unhide-in-chrome">
                   <a class="btn btn-primary hidden-xs"
                       id="js-chrome-extension-install"
@@ -133,6 +135,7 @@
                 </span>
 
                 <em class="or hidden-xs">Or...</em>
+#}
                 <form class="via js-via-form">
                   <span class="input-group"
                         title="Insert a URL to annotate that page.">
@@ -149,7 +152,7 @@
                 </form>
               </section>
 
-              <p class="hide-in-chrome installer__section--bookmarklet">
+{#              <p class="hide-in-chrome installer__section--bookmarklet">
                 There's also a
                 <a href="{{ request.route_url('chrome-extension') }}">
                   Chrome extension
@@ -158,7 +161,9 @@
                 <a href="#" class="" data-toggle="modal" data-target="#addtoyoursite" data-addtosite-button="">
                   add it to your website</a>.
               </p>
-              <p class="hidden unhide-in-chrome installer__section--bookmarklet">
+#}
+{#              <p class="hidden unhide-in-chrome installer__section--bookmarklet"> #}
+	      <p class=" installer__section--bookmarklet">
                 There's also a
                 <a href="#" class="" data-toggle="modal" data-target="#bookmarklet">
                   bookmarklet
@@ -243,7 +248,7 @@
 
   <footer class="content-info">
     <div class="container">
-      <nav class="navbar navbar-default">
+{#      <nav class="navbar navbar-default">
         <div class="nav navbar-nav social-media pull-right">
           <a class="social-media-link" href="{{ request.route_url('hypothesis-github') }}">
             <i class="h-icon-github"></i>
@@ -296,7 +301,7 @@
           </ul>
         </div>
       </nav>
-    </div>
+#}    </div>
   </footer>
 {% endblock %}
 
@@ -316,7 +321,9 @@
   </script>
   <!--<script async src="http://hyperthesis.chateau.tech/embed.js">-->
   
-  </script> {# TODO changer url pour une variable #}
+  {#<meta http-equiv="refresh" content="0; url=http://hyperthesis.chateau.tech:9080/" /> #}
+  
+  </script>
   {% for url in asset_urls("front_page_js") %}
   <script src="{{ url }}"></script>
   {% endfor %}
