@@ -36,7 +36,7 @@ if (viaForm) {
   viaForm.addEventListener('submit', (event) => {
     const url = event.target.elements.url.value;
     if (url !== '') {
-      window.location.href = 'http://hyperthesis.chateau.tech:9080/' + url;
+      window.location.href = 'http://via.projet-episteme.org/' + url;
     }
     event.preventDefault();
   });

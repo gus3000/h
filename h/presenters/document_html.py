@@ -184,7 +184,7 @@ class DocumentHTMLPresenter(object):
 
     @property
     def web_uri(self):
-        via_prefix = 'https://hyperthesis.chateau.tech:9080/'
+        via_prefix = 'https://via.projet-episteme.org/'
         web_uri = self.document.web_uri
 
         if web_uri and web_uri != via_prefix and web_uri.startswith(via_prefix):
