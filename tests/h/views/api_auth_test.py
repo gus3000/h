@@ -3,75 +3,305 @@
 from __future__ import unicode_literals
 
 import datetime
+import json
 
 import mock
 import pytest
 
-from h.services.auth_token import auth_token_service_factory
-from h.services.oauth import oauth_service_factory
-from h.services.user import user_service_factory
+from oauthlib.oauth2 import InvalidRequestFatalError
+from oauthlib.common import Request as OAuthRequest
+from pyramid import httpexceptions
+
+from h._compat import urlparse
 from h.exceptions import OAuthTokenError
+from h.models.auth_client import ResponseType
+from h.services.auth_token import auth_token_service_factory
+from h.services.oauth_provider import OAuthProviderService
+from h.services.oauth_validator import DEFAULT_SCOPES
+from h.services.user import user_service_factory
 from h.util.datetime import utc_iso8601
 from h.views import api_auth as views
 
 
-@pytest.mark.usefixtures('user_service', 'oauth_service')
-class TestAccessToken(object):
-    def test_it_verifies_the_token(self, pyramid_request, oauth_service):
-        pyramid_request.POST = {'assertion': 'the-assertion', 'grant_type': 'the-grant-type'}
+@pytest.mark.usefixtures('routes', 'oauth_provider', 'user_svc')
+class TestOAuthAuthorizeController(object):
+    @pytest.mark.usefixtures('authenticated_user')
+    @pytest.mark.parametrize('view_name', ['get', 'get_web_message'])
+    def test_get_validates_request(self, controller, pyramid_request, view_name):
+        view = getattr(controller, view_name)
+        view()
 
-        views.access_token(pyramid_request)
+        controller.oauth.validate_authorization_request.assert_called_once_with(
+            pyramid_request.url)
 
-        oauth_service.verify_token_request.assert_called_once_with(
-            pyramid_request.POST
-        )
+    @pytest.mark.parametrize('view_name', ['get', 'get_web_message'])
+    def test_get_raises_for_invalid_request(self, controller, view_name):
+        controller.oauth.validate_authorization_request.side_effect = InvalidRequestFatalError('boom!')
 
-    def test_it_creates_a_token(self, pyramid_request, oauth_service):
-        views.access_token(pyramid_request)
+        with pytest.raises(InvalidRequestFatalError) as exc:
+            view = getattr(controller, view_name)
+            view()
 
-        oauth_service.create_token.assert_called_once_with(
-            mock.sentinel.user, mock.sentinel.authclient)
+        assert exc.value.description == 'boom!'
 
-    def test_it_returns_an_oauth_compliant_response(self, pyramid_request, token):
-        response = views.access_token(pyramid_request)
+    @pytest.mark.parametrize('view_name', ['get', 'get_web_message'])
+    def test_get_redirects_to_login_when_not_authenticated(self, controller, pyramid_request, view_name):
+        with pytest.raises(httpexceptions.HTTPFound) as exc:
+            view = getattr(controller, view_name)
+            view()
 
-        assert response['access_token'] == token.value
-        assert response['token_type'] == 'bearer'
+        parsed_url = urlparse.urlparse(exc.value.location)
+        assert parsed_url.path == '/login'
+        assert urlparse.parse_qs(parsed_url.query) == {'next': [pyramid_request.url],
+                                                       'for_oauth': ['True']}
 
-    def test_it_returns_expires_in_if_the_token_expires(self, factories, pyramid_request, oauth_service):
-        token = factories.Token(
-            expires=datetime.datetime.utcnow() + datetime.timedelta(hours=1))
-        oauth_service.create_token.return_value = token
+    @pytest.mark.parametrize('response_mode,view_name', [
+        (None, 'get'),
+        ('web_message', 'get_web_message'),
+    ])
+    def test_get_returns_expected_context(self, controller, auth_client, authenticated_user, oauth_request, response_mode, view_name):
+        oauth_request.response_mode = response_mode
 
-        assert 'expires_in' in views.access_token(pyramid_request)
+        view = getattr(controller, view_name)
+        assert view() == {
+            'client_id': auth_client.id,
+            'client_name': auth_client.name,
+            'response_mode': response_mode,
+            'response_type': auth_client.response_type.value,
+            'state': 'foobar',
+            'username': authenticated_user.username,
+        }
 
-    def test_it_does_not_return_expires_in_if_the_token_does_not_expire(self, pyramid_request):
-        assert 'expires_in' not in views.access_token(pyramid_request)
+    @pytest.mark.parametrize('view_name', ['get', 'get_web_message'])
+    def test_get_creates_authorization_response_for_trusted_clients(self, controller, auth_client, authenticated_user, pyramid_request, view_name):
+        auth_client.trusted = True
 
-    def test_it_returns_the_refresh_token_if_the_token_has_one(self, pyramid_request, token):
-        token.refresh_token = 'test_refresh_token'
+        view = getattr(controller, view_name)
+        view()
 
-        assert views.access_token(pyramid_request)['refresh_token'] == token.refresh_token
+        controller.oauth.create_authorization_response.assert_called_once_with(
+            pyramid_request.url,
+            credentials={'user': authenticated_user},
+            scopes=DEFAULT_SCOPES)
 
-    def test_it_does_not_returns_the_refresh_token_if_the_token_does_not_have_one(self, pyramid_request):
-        assert 'refresh_token' not in views.access_token(pyramid_request)
+    def test_get_returns_redirect_immediately_for_trusted_clients(self, controller, auth_client, authenticated_user, pyramid_request):
+        auth_client.trusted = True
+
+        response = controller.get()
+        expected = '{}?code=abcdef123456&state=foobar'.format(auth_client.redirect_uri)
+
+        assert response.location == expected
+
+    @pytest.mark.usefixtures('authenticated_user')
+    def test_get_web_message_renders_template_for_trusted_clients(self, controller, auth_client):
+        auth_client.trusted = True
+
+        assert controller.request.override_renderer is None
+        controller.get_web_message()
+        assert controller.request.override_renderer == 'h:templates/oauth/authorize_web_message.html.jinja2'
+
+    @pytest.mark.usefixtures('authenticated_user')
+    def test_get_web_message_returns_context_for_trusted_clients(self, controller, auth_client):
+        auth_client.trusted = True
+
+        response = controller.get_web_message()
+
+        assert response == {
+            'code': 'abcdef123456',
+            'origin': 'http://client.com',
+            'state': 'foobar',
+        }
+
+    @pytest.mark.usefixtures('authenticated_user')
+    def test_get_web_message_allows_empty_state_in_context_for_trusted_clients(self, controller, auth_client, oauth_provider):
+        auth_client.trusted = True
+
+        headers = {'Location': '{}?code=abcdef123456'.format(auth_client.redirect_uri)}
+        oauth_provider.create_authorization_response.return_value = (headers, None, 302)
+
+        response = controller.get_web_message()
+        assert response['state'] is None
+
+    @pytest.mark.parametrize('view_name', ['post', 'post_web_message'])
+    def test_post_creates_authorization_response(self, controller, pyramid_request, authenticated_user, view_name):
+        pyramid_request.url = 'http://example.com/auth?client_id=the-client-id' + \
+                                                     '&response_type=code' + \
+                                                     '&state=foobar' + \
+                                                     '&scope=exploit'
+
+        view = getattr(controller, view_name)
+        view()
+
+        controller.oauth.create_authorization_response.assert_called_once_with(
+            pyramid_request.url,
+            credentials={'user': authenticated_user},
+            scopes=DEFAULT_SCOPES)
+
+    @pytest.mark.usefixtures('authenticated_user')
+    @pytest.mark.parametrize('view_name', ['post', 'post_web_message'])
+    def test_post_raises_for_invalid_request(self, controller, view_name):
+        controller.oauth.create_authorization_response.side_effect = InvalidRequestFatalError('boom!')
+
+        with pytest.raises(InvalidRequestFatalError) as exc:
+            view = getattr(controller, view_name)
+            view()
+
+        assert exc.value.description == 'boom!'
+
+    def test_post_redirects_to_client(self, controller, auth_client):
+        response = controller.post()
+        expected = '{}?code=abcdef123456&state=foobar'.format(auth_client.redirect_uri)
+
+        assert response.location == expected
+
+    def test_post_web_message_returns_expected_context(self, controller, auth_client):
+        response = controller.post_web_message()
+
+        assert response == {
+            'code': 'abcdef123456',
+            'origin': 'http://client.com',
+            'state': 'foobar',
+        }
+
+    def test_post_web_message_allows_empty_state_in_context(self, controller, auth_client, oauth_provider):
+        auth_client.trusted = True
+
+        headers = {'Location': '{}?code=abcdef123456'.format(auth_client.redirect_uri)}
+        oauth_provider.create_authorization_response.return_value = (headers, None, 302)
+
+        response = controller.post_web_message()
+        assert response['state'] is None
 
     @pytest.fixture
-    def oauth_service(self, pyramid_config, pyramid_request, token):
-        svc = mock.Mock(spec_set=oauth_service_factory(None, pyramid_request))
-        svc.verify_token_request.return_value = (mock.sentinel.user, mock.sentinel.authclient)
-        svc.create_token.return_value = token
-        pyramid_config.register_service(svc, name='oauth')
+    def controller(self, pyramid_request):
+        pyramid_request.override_renderer = None
+        return views.OAuthAuthorizeController(None, pyramid_request)
+
+    @pytest.fixture
+    def oauth_request(self):
+        return OAuthRequest('/')
+
+    @pytest.fixture
+    def oauth_provider(self, pyramid_config, auth_client, oauth_request):
+        svc = mock.create_autospec(OAuthProviderService, instance=True)
+
+        scopes = ['annotation:read', 'annotation:write']
+        credentials = {'client_id': auth_client.id, 'state': 'foobar', 'request': oauth_request}
+        svc.validate_authorization_request.return_value = (scopes, credentials)
+
+        headers = {'Location': '{}?code=abcdef123456&state=foobar'.format(auth_client.redirect_uri)}
+        body = None
+        status = 302
+        svc.create_authorization_response.return_value = (headers, body, status)
+
+        pyramid_config.register_service(svc, name='oauth_provider')
+
         return svc
 
     @pytest.fixture
-    def token(self, factories):
-        return factories.Token()
+    def auth_client(self, factories):
+        return factories.AuthClient(name='Test Client',
+                                    redirect_uri='http://client.com/auth/callback',
+                                    response_type=ResponseType.code)
 
     @pytest.fixture
-    def user_service(self, pyramid_config, pyramid_request):
+    def user_svc(self, pyramid_config, pyramid_request):
         svc = mock.Mock(spec_set=user_service_factory(None, pyramid_request))
         pyramid_config.register_service(svc, name='user')
+        return svc
+
+    @pytest.fixture
+    def pyramid_request(self, pyramid_request):
+        pyramid_request.url = 'http://example.com/auth?client_id=the-client-id&response_type=code&state=foobar'
+        return pyramid_request
+
+    @pytest.fixture
+    def authenticated_user(self, factories, pyramid_config, user_svc):
+        user = factories.User.build()
+        pyramid_config.testing_securitypolicy(user.userid)
+
+        def fake_fetch(userid):
+            if userid == user.userid:
+                return user
+        user_svc.fetch.side_effect = fake_fetch
+
+        return user
+
+    @pytest.fixture
+    def routes(self, pyramid_config):
+        pyramid_config.add_route('login', '/login')
+
+
+@pytest.mark.usefixtures('oauth_provider')
+class TestOAuthAccessTokenController(object):
+    def test_it_creates_token_response(self, pyramid_request, controller, oauth_provider):
+        controller.post()
+        oauth_provider.create_token_response.assert_called_once_with(
+                pyramid_request.url, pyramid_request.method, pyramid_request.POST, pyramid_request.headers)
+
+    def test_it_returns_correct_response_on_success(self, controller, oauth_provider):
+        body = json.dumps({'access_token': 'the-access-token'})
+        oauth_provider.create_token_response.return_value = ({}, body, 200)
+
+        assert controller.post() == {'access_token': 'the-access-token'}
+
+    def test_it_raises_when_error(self, controller, oauth_provider):
+        body = json.dumps({'error': 'invalid_request'})
+        oauth_provider.create_token_response.return_value = ({}, body, 400)
+
+        with pytest.raises(httpexceptions.HTTPBadRequest) as exc:
+            controller.post()
+
+        assert exc.value.body == body
+
+    @pytest.fixture
+    def controller(self, pyramid_request):
+        pyramid_request.method = 'POST'
+        pyramid_request.POST['grant_type'] = 'authorization_code'
+        pyramid_request.POST['code'] = 'the-authz-code'
+        pyramid_request.headers = {'X-Test-ID': '1234'}
+        return views.OAuthAccessTokenController(pyramid_request)
+
+    @pytest.fixture
+    def oauth_provider(self, pyramid_config):
+        svc = mock.Mock(spec_set=['create_token_response'])
+        svc.create_token_response.return_value = ({}, '{}', 200)
+        pyramid_config.register_service(svc, name='oauth_provider')
+        return svc
+
+
+@pytest.mark.usefixtures('oauth_provider')
+class TestOAuthRevocationController(object):
+    def test_it_creates_revocation_response(self, pyramid_request, controller, oauth_provider):
+        controller.post()
+        oauth_provider.create_revocation_response.assert_called_once_with(
+                pyramid_request.url, pyramid_request.method, pyramid_request.POST, pyramid_request.headers)
+
+    def test_it_returns_empty_response_on_success(self, controller):
+        response = controller.post()
+        assert response == {}
+
+    def test_it_raises_when_error(self, controller, oauth_provider):
+        body = json.dumps({'error': 'invalid_request'})
+        oauth_provider.create_revocation_response.return_value = ({}, body, 400)
+
+        with pytest.raises(httpexceptions.HTTPBadRequest) as exc:
+            controller.post()
+
+        assert exc.value.body == body
+
+    @pytest.fixture
+    def controller(self, pyramid_request):
+        pyramid_request.method = 'POST'
+        pyramid_request.POST['token'] = 'the-token'
+        pyramid_request.headers = {'X-Test-ID': '1234'}
+        return views.OAuthRevocationController(pyramid_request)
+
+    @pytest.fixture
+    def oauth_provider(self, pyramid_config):
+        svc = mock.Mock(spec_set=['create_revocation_response'])
+        svc.create_revocation_response.return_value = ({}, '{}', 200)
+        pyramid_config.register_service(svc, name='oauth_provider')
         return svc
 
 
@@ -146,11 +376,11 @@ class TestDebugToken(object):
     def oauth_token(self, factories):
         authclient = factories.AuthClient(name='Example Client')
         expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
-        return factories.Token(authclient=authclient, expires=expires)
+        return factories.DeveloperToken(authclient=authclient, expires=expires)
 
     @pytest.fixture
     def developer_token(self, factories):
-        return factories.Token()
+        return factories.DeveloperToken()
 
 
 class TestAPITokenError(object):

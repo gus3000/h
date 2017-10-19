@@ -21,7 +21,7 @@ class TestModeration(object):
 
 @pytest.fixture
 def group(db_session, factories, moderator):
-    group = factories.Group(creator=moderator)
+    group = factories.PublisherGroup(creator=moderator)
     db_session.commit()
     return group
 
@@ -43,6 +43,6 @@ def moderator(db_session, factories):
 
 @pytest.fixture
 def moderator_with_token(moderator, db_session, factories):
-    token = factories.Token(userid=moderator.userid)
+    token = factories.DeveloperToken(userid=moderator.userid)
     db_session.commit()
     return (moderator, token)

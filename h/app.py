@@ -53,8 +53,8 @@ def includeme(config):
     config.add_tween('h.tweens.conditional_http_tween_factory', under=EXCVIEW)
     config.add_tween('h.tweens.redirect_tween_factory')
     config.add_tween('h.tweens.csrf_tween_factory')
-    config.add_tween('h.tweens.auth_token')
     config.add_tween('h.tweens.security_header_tween_factory')
+    config.add_tween('h.tweens.cache_header_tween_factory')
 
     config.add_request_method(in_debug_mode, 'debug', reify=True)
 
@@ -71,7 +71,10 @@ def includeme(config):
 
     config.registry.settings.setdefault('mail.default_sender',
                                         '"Annotation Daemon" <no-reply@localhost>')
-    config.include('pyramid_mailer')
+    if asbool(config.registry.settings.get('h.debug')):
+        config.include('pyramid_mailer.debug')
+    else:
+        config.include('pyramid_mailer')
 
     # Pyramid service layer: provides infrastructure for registering and
     # retrieving services bound to the request.
@@ -112,6 +115,7 @@ def includeme(config):
     config.include('h.indexer')
     config.include('h.panels')
     config.include('h.realtime')
+    config.include('h.renderers')
     config.include('h.routes')
     config.include('h.search')
     config.include('h.sentry')
@@ -132,4 +136,3 @@ def includeme(config):
     # Debugging assistance
     if asbool(config.registry.settings.get('h.debug')):
         config.include('pyramid_debugtoolbar')
-        config.include('h.debug')

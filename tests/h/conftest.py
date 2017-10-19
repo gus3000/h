@@ -24,7 +24,7 @@ from h import form
 from h.settings import database_url
 from h._compat import text_type
 
-TEST_AUTHORITY = 'example.com'
+TEST_AUTHORITY = u'example.com'
 TEST_DATABASE_URL = database_url(os.environ.get('TEST_DATABASE_URL',
                                                 'postgresql://postgres@localhost/htest'))
 
@@ -47,6 +47,9 @@ class DummyFeature(object):
 
     def __call__(self, name, *args, **kwargs):
         return self.flags.get(name, True)
+
+    def all(self):
+        return self.flags
 
     def load(self):
         self.loaded = True

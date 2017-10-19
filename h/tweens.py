@@ -14,21 +14,6 @@ log = logging.getLogger(__name__)
 resolver = DottedNameResolver(None)
 
 
-def auth_token(handler, registry):
-    """
-    A tween that copies the value of the Annotator token header into the the
-    HTTP Authorization header with the Bearer token type.
-    """
-
-    def tween(request):
-        token = request.headers.get('X-Annotator-Auth-Token')
-        if token is not None:
-            request.authorization = ('Bearer', token)
-        return handler(request)
-
-    return tween
-
-
 def conditional_http_tween_factory(handler, registry):
     """A tween that sets up conditional response handling for some requests."""
     def conditional_http_tween(request):
@@ -118,3 +103,19 @@ def security_header_tween_factory(handler, registry):
         return resp
 
     return security_header_tween
+
+
+def cache_header_tween_factory(handler, registry):
+    """
+    Sets default caching headers on responses depending on the content type.
+    """
+    def cache_header_tween(request):
+        resp = handler(request)
+
+        # Require revalidation before using any cached API responses.
+        if 'application/json' in resp.headers.get('Content-Type', []):
+            resp.headers.setdefault('Cache-Control', 'no-cache')
+
+        return resp
+
+    return cache_header_tween

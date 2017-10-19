@@ -9,6 +9,7 @@ Views which exist either to serve or support the Hypothesis client.
 from __future__ import unicode_literals
 
 import json
+import time
 
 from pyramid.httpexceptions import HTTPFound
 from pyramid.view import view_config
@@ -27,7 +28,11 @@ def _client_url(request):
     """
     Return the configured URL for the client.
     """
-    return request.registry.settings.get('h.client_url', DEFAULT_CLIENT_URL)
+    url = request.registry.settings.get('h.client_url', DEFAULT_CLIENT_URL)
+
+    if request.feature('embed_cachebuster'):
+        url += '?cachebuster=' + str(int(time.time()))
+    return url
 
 
 @view_config(route_name='sidebar_app',
@@ -49,8 +54,25 @@ def sidebar_app(request, extra=None):
     app_config = {
         'apiUrl': request.route_url('api.index'),
         'authDomain': request.authority,
+
+        # OAuth config.
+        'oauthClientId': settings.get('h.client_oauth_id'),
+
+        # The OAuth feature flag is included as part of the `app.html` config
+        # rather than being delivered via the "features" key in /api/profile so
+        # that it is available as soon as the client starts before
+        # API tokens are fetched.
+        #
+        # TODO - This should be removed once OAuth for first-party accounts is
+        #        shipped.
+        'oauthEnabled': request.feature('client_oauth'),
+
         'release': __version__,
         'serviceUrl': request.route_url('index'),
+
+        # The list of origins that the client will respond to cross-origin RPC
+        # requests from.
+        'rpcAllowedOrigins': settings.get('h.client_rpc_allowed_origins'),
     }
 
     if websocket_url:

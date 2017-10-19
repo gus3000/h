@@ -38,7 +38,10 @@ class TestSidebarApp(object):
                     'release': __version__
                 },
                 'authDomain': 'example.com',
-                'googleAnalytics': 'UA-4567'
+                'googleAnalytics': 'UA-4567',
+                'oauthClientId': 'test-client-id',
+                'oauthEnabled': True,
+                'rpcAllowedOrigins': 'https://lti.hypothes.is',
                 }
 
         actual_config = json.loads(ctx['app_config'])
@@ -50,14 +53,32 @@ class TestSidebarApp(object):
 
         assert ctx['embed_url'] == '/embed.js'
 
+    def test_it_disables_oauth(self, pyramid_request):
+        pyramid_request.feature.flags['client_oauth'] = False
+
+        ctx = client.sidebar_app(pyramid_request)
+        cfg = json.loads(ctx['app_config'])
+
+        assert cfg['oauthEnabled'] is False
+
 
 @pytest.mark.usefixtures('routes', 'pyramid_settings')
 class TestEmbedRedirect(object):
     def test_redirects_to_client_boot_script(self, pyramid_request):
+        pyramid_request.feature.flags['embed_cachebuster'] = False
+
         rsp = client.embed_redirect(pyramid_request)
 
         assert isinstance(rsp, HTTPFound)
         assert rsp.location == 'https://cdn.hypothes.is/hypothesis'
+
+    def test_adds_cachebuster(self, pyramid_request):
+        pyramid_request.feature.flags['embed_cachebuster'] = True
+
+        rsp = client.embed_redirect(pyramid_request)
+
+        assert isinstance(rsp, HTTPFound)
+        assert '?cachebuster=' in rsp.location
 
 
 @pytest.fixture
@@ -65,8 +86,10 @@ def pyramid_settings(pyramid_settings):
 
     pyramid_settings.update({
         'ga_client_tracking_id': 'UA-4567',
+        'h.client_oauth_id': 'test-client-id',
         'h.sentry_dsn_client': 'test-sentry-dsn',
         'h.websocket_url': 'wss://example.com/ws',
+        'h.client_rpc_allowed_origins': 'https://lti.hypothes.is',
         'authority': 'example.com'
         })
 
@@ -79,6 +102,8 @@ def routes(pyramid_config):
     pyramid_config.add_route('embed', '/embed.js')
     pyramid_config.add_route('index', '/')
     pyramid_config.add_route('sidebar_app', '/app.html')
+    pyramid_config.add_route('oauth_authorize', '/oauth/authorize')
+    pyramid_config.add_route('oauth_revoke', '/oauth/revoke')
 
 
 @pytest.fixture

@@ -9,12 +9,14 @@ if (settings.raven) {
 
 require('./polyfills');
 
+const AuthorizeFormController = require('./controllers/authorize-form-controller');
 const CharacterLimitController = require('./controllers/character-limit-controller');
 const CopyButtonController = require('./controllers/copy-button-controller');
 const ConfirmSubmitController = require('./controllers/confirm-submit-controller');
 const CreateGroupFormController = require('./controllers/create-group-form-controller');
 const DropdownMenuController = require('./controllers/dropdown-menu-controller');
 const FormController = require('./controllers/form-controller');
+const FormCancelController = require('./controllers/form-cancel-controller');
 const FormSelectOnFocusController = require('./controllers/form-select-onfocus-controller');
 const InputAutofocusController = require('./controllers/input-autofocus-controller');
 const SearchBarController = require('./controllers/search-bar-controller');
@@ -25,12 +27,14 @@ const TooltipController = require('./controllers/tooltip-controller');
 const upgradeElements = require('./base/upgrade-elements');
 
 const controllers = {
+  '.js-authorize-form': AuthorizeFormController,
   '.js-character-limit': CharacterLimitController,
   '.js-copy-button': CopyButtonController,
   '.js-confirm-submit': ConfirmSubmitController,
   '.js-create-group-form': CreateGroupFormController,
   '.js-dropdown-menu': DropdownMenuController,
   '.js-form': FormController,
+  '.js-form-cancel': FormCancelController,
   '.js-input-autofocus': InputAutofocusController,
   '.js-select-onfocus': FormSelectOnFocusController,
   '.js-search-bar': SearchBarController,

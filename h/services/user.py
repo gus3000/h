@@ -2,9 +2,11 @@
 
 from __future__ import unicode_literals
 
+import sqlalchemy as sa
+
 from h.models import User
-from h.util.db import lru_cache_in_transaction
 from h.util.user import split_user
+from h.util.db import on_transaction_end
 
 UPDATE_PREFS_ALLOWED_KEYS = set(['show_sidebar_tutorial'])
 
@@ -27,7 +29,13 @@ class UserService(object):
         self.default_authority = default_authority
         self.session = session
 
-        self._cached_fetch = lru_cache_in_transaction(self.session)(self._fetch)
+        # Local cache of fetched users.
+        self._cache = {}
+
+        # But don't allow the cache to persist after the session is closed.
+        @on_transaction_end(session)
+        def flush_cache():
+            self._cache = {}
 
     def fetch(self, userid_or_username, authority=None):
         """
@@ -54,7 +62,58 @@ class UserService(object):
             username = parts['username']
             authority = parts['domain']
 
-        return self._cached_fetch(username, authority)
+        # The cache is keyed by (username, authority) tuples.
+        cache_key = (username, authority)
+
+        if cache_key not in self._cache:
+            self._cache[cache_key] = (self.session.query(User)
+                                      .filter_by(username=username)
+                                      .filter_by(authority=authority)
+                                      .one_or_none())
+
+        return self._cache[cache_key]
+
+    def fetch_all(self, userids):
+        """
+        Fetch a list of users by their userids.
+
+        This function fetches users based on the list, adds them to the internal
+        cache and then returns the list of users. This is especially useful
+        when needing to access multiple user objects without loading them one-by-one.
+
+        It will only attempt to load the users that aren't already cached.
+
+        Userids that cannot be found will not be in the cache, so subsequent calls to `.fetch`
+        are trying to load them again.
+
+        :param userids: a list of userid strings.
+
+        :returns: a list with the found user instances
+        :rtype: list of h.models.User
+        """
+        if not userids:
+            return []
+
+        cache_keys = {}
+        for userid in userids:
+            try:
+                val = split_user(userid)
+                key = (val['username'], val['domain'])
+                cache_keys[key] = userid
+            except ValueError:
+                continue
+
+        userid_tuples = set(cache_keys.keys())
+        missing_tuples = userid_tuples - set(self._cache.keys())
+        missing_ids = [v for k, v in cache_keys.iteritems() if k in missing_tuples]
+
+        if missing_ids:
+            users = self.session.query(User).filter(User.userid.in_(missing_ids))
+            for user in users:
+                cache_key = (user.username, user.authority)
+                self._cache[cache_key] = user
+
+        return [v for k, v in self._cache.iteritems() if k in cache_keys.keys()]
 
     def fetch_for_login(self, username_or_email):
         """
@@ -64,18 +123,21 @@ class UserService(object):
         email in the default authority if `username_or_email` contains an "@"
         character.
 
+        When fetching by an email address we use a case-insensitive query.
+
         :returns: A user object if a user was found, None otherwise.
         :rtype: h.models.User or NoneType
         :raises UserNotActivated: When the user is not activated.
         """
-        filters = {'authority': self.default_authority}
+        filters = [(User.authority == self.default_authority)]
         if '@' in username_or_email:
-            filters['email'] = username_or_email
+            filters.append(
+                sa.func.lower(User.email) == username_or_email.lower())
         else:
-            filters['username'] = username_or_email
+            filters.append(User.username == username_or_email)
 
         user = (self.session.query(User)
-                .filter_by(**filters)
+                .filter(*filters)
                 .one_or_none())
 
         if user is None:
@@ -94,12 +156,6 @@ class UserService(object):
 
         if 'show_sidebar_tutorial' in kwargs:
             user.sidebar_tutorial_dismissed = not kwargs['show_sidebar_tutorial']
-
-    def _fetch(self, username, authority):
-        return (self.session.query(User)
-                    .filter_by(username=username)
-                    .filter_by(authority=authority)
-                    .one_or_none())
 
 
 def user_service_factory(context, request):

@@ -10,7 +10,8 @@
 # Legacy application URLs
 /profile/notifications internal-prefix account_notifications
 /profile/developer     internal-prefix account_developer
-/profile               internal-prefix account
+/profile               internal-exact account
+/profile/              internal-exact account
 /register              internal-prefix signup
 /forgot_password       internal-prefix forgot_password
 /reset_password        internal-prefix account_reset
@@ -99,8 +100,8 @@
 /fact-checking-the-candidates/                         exact https://web.hypothes.is/fact-checking-the-candidates/
 /faq                                                   exact https://web.hypothes.is/faq/
 /faq/                                                  exact https://web.hypothes.is/faq/
-/faqv1                                                 exact https://web.hypothes.is/faqv1/
-/faqv1/                                                exact https://web.hypothes.is/faqv1/
+/faqv1                                                 exact https://web.hypothes.is/faq/
+/faqv1/                                                exact https://web.hypothes.is/faq/
 /financial-information                                 exact https://web.hypothes.is/financial-information/
 /financial-information/                                exact https://web.hypothes.is/financial-information/
 /for-publishers                                        exact https://web.hypothes.is/publishing/

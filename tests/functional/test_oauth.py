@@ -6,8 +6,11 @@ from __future__ import unicode_literals
 import calendar
 import datetime
 
-import jwt
 import pytest
+
+import jwt
+
+from h.models.auth_client import GrantType
 
 
 @pytest.mark.functional
@@ -35,7 +38,7 @@ class TestOAuth(object):
     def test_request_fails_if_access_token_expired(self, app, authclient,
                                                    db_session, factories,
                                                    userid):
-        token = factories.Token(
+        token = factories.DeveloperToken(
             expires=datetime.datetime.utcnow() - datetime.timedelta(hours=1))
         token = token.value
         db_session.commit()
@@ -96,7 +99,7 @@ class TestOAuth(object):
                                                           db_session,
                                                           factories,
                                                           userid):
-        token = factories.Token(
+        token = factories.DeveloperToken(
             expires=datetime.datetime.utcnow() - datetime.timedelta(hours=1))
         refresh_token = token.refresh_token
         db_session.commit()
@@ -119,6 +122,30 @@ class TestOAuth(object):
             '/api/debug-token',
             headers={'Authorization': str('Bearer {}'.format(refresh_token))},
             status=401,
+        )
+
+    def test_revoke_token(self, app, authclient, userid):
+        response = self.get_access_token(app, authclient, userid)
+        refresh_token = response['refresh_token']
+
+        app.post(
+            '/oauth/revoke',
+            {
+                'token': refresh_token,
+            },
+            status=200,
+        )
+
+    @pytest.mark.parametrize('method, path', [
+        ('POST', '/api/token'),
+        ('POST', '/oauth/revoke'),
+    ])
+    def test_oauth_routes_support_cors_preflight(self, app, method, path):
+        app.options(
+            path,
+            headers={'Origin': str('https://third-party-client.herokuapp.com'),
+                     'Access-Control-Request-Method': str(method)},
+            status=200,
         )
 
     def get_access_token(self, app, authclient, userid):
@@ -150,7 +177,7 @@ class TestOAuth(object):
 
     @pytest.fixture
     def authclient(self, db_session, factories):
-        authclient = factories.AuthClient()
+        authclient = factories.ConfidentialAuthClient(grant_type=GrantType.jwt_bearer)
         db_session.commit()
         return authclient
 

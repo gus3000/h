@@ -42,6 +42,12 @@ def includeme(config):
     config.add_route('admin_mailer', '/admin/mailer')
     config.add_route('admin_mailer_test', '/admin/mailer/test')
     config.add_route('admin_nipsa', '/admin/nipsa')
+    config.add_route('admin_oauthclients', '/admin/oauthclients')
+    config.add_route('admin_oauthclients_create', '/admin/oauthclients/new')
+    config.add_route('admin_oauthclients_edit',
+                     '/admin/oauthclients/{id}',
+                     factory='h.resources.AuthClientFactory',
+                     traverse='/{id}')
     config.add_route('admin_staff', '/admin/staff')
     config.add_route('admin_users', '/admin/users')
     config.add_route('admin_users_activate', '/admin/users/activate')
@@ -66,6 +72,9 @@ def includeme(config):
     # is not (or should not) be necessary, but for now the client will
     # construct URLs incorrectly if its `apiUrl` setting does not end in a
     # trailing slash.
+    #
+    # Any new parameter names will require a corresponding change to the link
+    # template generator in `h/views/api.py`
     config.add_route('api.index', '/api/')
     config.add_route('api.links', '/api/links')
     config.add_route('api.annotations', '/api/annotations')
@@ -87,10 +96,17 @@ def includeme(config):
                      traverse='/{id}')
     config.add_route('api.profile', '/api/profile')
     config.add_route('api.debug_token', '/api/debug-token')
+    config.add_route('api.group_member',
+                     '/api/groups/{pubid}/members/{user}',
+                     factory='h.models.group:GroupFactory',
+                     traverse='/{pubid}')
     config.add_route('api.search', '/api/search')
     config.add_route('api.users', '/api/users')
+    config.add_route('api.user', '/api/users/{username}')
     config.add_route('badge', '/api/badge')
     config.add_route('token', '/api/token')
+    config.add_route('oauth_authorize', '/oauth/authorize')
+    config.add_route('oauth_revoke', '/oauth/revoke')
 
     # Client
     config.add_route('session', '/app')
@@ -105,10 +121,6 @@ def includeme(config):
     config.add_route('group_create', '/groups/new')
     config.add_route('group_edit',
                      '/groups/{pubid}/edit',
-                     factory='h.models.group:GroupFactory',
-                     traverse='/{pubid}')
-    config.add_route('group_leave',
-                     '/groups/{pubid}/leave',
                      factory='h.models.group:GroupFactory',
                      traverse='/{pubid}')
     # Match "/<pubid>/": we redirect to the version with the slug.
