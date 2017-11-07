@@ -16,12 +16,12 @@ TEST_URLS = [
     ("file://example.org", "file://example.org"),
 
 
-    # Should strip https://via.hypothes.is/ from the start of URIs
-    ("https://via.hypothes.is/https://example.com", "httpx://example.com"),
-    ("https://via.hypothes.is/http://foo.com/bar/", "httpx://foo.com/bar"),
+    # Should strip https://via.projet-episteme.org/ from the start of URIs
+    ("https://via.projet-episteme.org/https://example.com", "httpx://example.com"),
+    ("https://via.projet-episteme.org/http://foo.com/bar/", "httpx://foo.com/bar"),
     # but not when the URI isn't a proxied one
-    ("https://via.hypothes.is", "httpx://via.hypothes.is"),
-    ("https://via.hypothes.is/sample", "httpx://via.hypothes.is/sample"),
+    ("https://via.projet-episteme.org", "httpx://via.projet-episteme.org"),
+    ("https://via.projet-episteme.org/sample", "httpx://via.projet-episteme.org/sample"),
 
     # Should leave URNs as they are
     ("urn:doi:10.0001/12345", "urn:doi:10.0001/12345"),

@@ -261,7 +261,7 @@ class TestDocumentHTMLPresenter(object):
         It just returns Document.web_uri for non-via web_uris.
 
         If Document.web_uri is a string that doesn't start with
-        https://via.hypothes.is/ then DocumentHTMLPresenter.web_uri should
+        https://via.projet-episteme.org/ then DocumentHTMLPresenter.web_uri should
         just return Document.web_uri.
 
         """
@@ -273,36 +273,36 @@ class TestDocumentHTMLPresenter(object):
         assert self.presenter(web_uri=None).web_uri is None
 
     @pytest.mark.parametrize('via_url', (
-                             'https://via.hypothes.is',
-                             'https://via.hypothes.is/'))
+                             'https://via.projet-episteme.org',
+                             'https://via.projet-episteme.org/'))
     def test_web_uri_returns_via_front_page(self, via_url):
-        """It doesn't strip https://via.hypothes.is if that's the entire URL."""
+        """It doesn't strip https://via.projet-episteme.org if that's the entire URL."""
         assert self.presenter(web_uri=via_url).web_uri == via_url
 
     def test_web_uri_does_not_strip_http_via(self):
         """
-        It doesn't strip non-SSL http://via.hypothes.is.
+        It doesn't strip non-SSL http://via.projet-episteme.org.
 
-        Since http://via.hypothes.is redirects to https://via.hypothes.is
-        anyway, and we don't currently have any http://via.hypothes.is
+        Since http://via.projet-episteme.org redirects to https://via.projet-episteme.org
+        anyway, and we don't currently have any http://via.projet-episteme.org
         URIs in our production DB, DocumentHTMLPresenter.web_uri only strips
-        https://via.hypothes.is/ and ignores http://via.hypothes.is/.
+        https://via.projet-episteme.org/ and ignores http://via.projet-episteme.org/.
         """
-        uri = 'http://via.hypothes.is/http://example.com/page'
+        uri = 'http://via.projet-episteme.org/http://example.com/page'
 
         assert self.presenter(web_uri=uri).web_uri == uri
 
     @pytest.mark.parametrize('path', ('foo', 'http://example.com'))
     def test_web_uri_strips_via(self, path):
         """
-        It strips any https://via.hypothes.is/ prefix from Document.web_uri.
+        It strips any https://via.projet-episteme.org/ prefix from Document.web_uri.
 
-        If Document.web_uri is https://via.hypothes.is/<path>, for any <path>
+        If Document.web_uri is https://via.projet-episteme.org/<path>, for any <path>
         (whether path is a URL or not), DocumentHTMLPresenter.web_uri just
-        returns <path> with the https://via.hypothes.is/ prefix removed.
+        returns <path> with the https://via.projet-episteme.org/ prefix removed.
 
         """
-        uri = 'https://via.hypothes.is/' + path
+        uri = 'https://via.projet-episteme.org/' + path
 
         assert self.presenter(web_uri=uri).web_uri == path
 
