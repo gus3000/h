@@ -385,8 +385,8 @@ class SignupController(object):
                               password=appstruct['password'])
 
         self.request.session.flash(jinja2.Markup(_(
-            "Please check your email and open the link to activate your "
-            "account.")), 'success')
+            "Your account is created and activated. Please use the login link "
+            "in the page header to log in.")), 'success')
 
         return httpexceptions.HTTPFound(
             location=self.request.route_url('index'))
