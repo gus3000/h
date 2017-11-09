@@ -103,6 +103,8 @@ SETTINGS = [
 
     # Debug/development settings
     EnvSetting('debug_query', 'DEBUG_QUERY'),
+
+    EnvSetting('h.via_base_url', 'VIA_BASE_URL'),
 ]
 
 
