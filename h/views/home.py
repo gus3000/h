@@ -15,7 +15,8 @@ def via_redirect(context, request):
     if url is None:
         raise httpexceptions.HTTPBadRequest('"url" parameter missing')
 
-    via_link = 'https://via.projet-episteme.org/{}'.format(url)
+    via_link = request.registry.settings.get('h.via_base_url', 'https://via.hypothes.is').strip('/')+'/{}'.format(url)
+
     raise httpexceptions.HTTPFound(location=via_link)
 
 
