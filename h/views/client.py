@@ -76,6 +76,7 @@ def sidebar_app(request, extra=None):
 
         # the via url used to share the document.
         'viaUrl': settings.get('h.via_base_url', 'https://via.hypothes.is').strip('/')+'/',
+        'annotationProtocol' : settings.get('h.annotation_protocol'),
     }
 
     if websocket_url:

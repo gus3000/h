@@ -29,6 +29,25 @@ DEFAULT_SALT = (b"\xbc\x9ck!k\x81(\xb6I\xaa\x90\x0f'}\x07\xa1P\xd9\xb7\xcb"
                 b"\x9f\x1b\x96\xc1\xfa\x8b\x19\x82\xa3[\x19\xcb\xa4\x1a\x0f"
                 b"\xe4\xcb\r\x17\x7f\xfbh\xd5^W\xdb\xe6")
 
+DEFAULT_ANNOTATION_PROTOCOL = [
+    {
+        'name': "Important",
+        'color': "#abd9e9" # bleu
+    }, {
+        'name': "Mot-clef",
+        'color': "#c2a5cf" # violet
+    }, {
+        'name': "Commentaire",
+        'color': "#abdda4" # vert
+    }, {
+        'name': "Trouble",
+        'color': "#fdae61" # orange
+    },# {
+#        name: "Default",
+#        color: "#ffffbf" # jaune
+#    },
+]
+
 # The list of all settings read from the system environment. These are in
 # reverse-priority order, meaning that later settings trump earlier settings.
 SETTINGS = [
@@ -139,5 +158,8 @@ def configure(environ=None, settings=None):
         if settings['debug_query'] == 'trace':
             level = logging.DEBUG
         logging.getLogger('sqlalchemy.engine').setLevel(level)
+
+    if 'h.annotation_protocol' not in settings:
+        settings['h.annotation_protocol'] = DEFAULT_ANNOTATION_PROTOCOL
 
     return Configurator(settings=settings)
