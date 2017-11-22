@@ -42,6 +42,8 @@ class TestSidebarApp(object):
                 'oauthClientId': 'test-client-id',
                 'oauthEnabled': True,
                 'rpcAllowedOrigins': 'https://lti.hypothes.is',
+                'annotationProtocol': None,
+                'viaUrl': u'https://via.hypothes.is/'
                 }
 
         actual_config = json.loads(ctx['app_config'])
