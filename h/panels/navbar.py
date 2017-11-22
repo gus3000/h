@@ -62,4 +62,5 @@ def navbar(context, request, search=None, opts=None):
         'search_url': search_url,
         'q': request.params.get('q', ''),
         'opts': opts or {},
+        'hypothesis_homepage': request.registry.settings.get('h.homepage_url', 'https://web.hypothes.is/')
     }

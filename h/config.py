@@ -96,6 +96,7 @@ SETTINGS = [
     EnvSetting('h.client_secret', 'CLIENT_SECRET'),
 
     EnvSetting('h.client_url', 'CLIENT_URL'),
+    EnvSetting('h.homepage_url', 'HOMEPAGE_URL'),
 
     # ID for the OAuth authclient that the embedded client should use when
     # making requests to OAuth endpoints. As a public client, it does not have a

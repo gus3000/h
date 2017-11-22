@@ -9,6 +9,11 @@ This section documents the environment variables supported by h.
    This is the URL to the client entrypoint script, by default
    https://cdn.hypothes.is/hypothesis.
 
+.. envvar:: HOMEPAGE_URL
+
+   The URL at which the Hypothesis web front is hosted.
+   by default https://web.hypothes.is.
+
 .. envvar:: CLIENT_OAUTH_ID
 
    The OAuth client ID for the Hypothesis client on pages that embed it using
