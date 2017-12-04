@@ -32,16 +32,21 @@ DEFAULT_SALT = (b"\xbc\x9ck!k\x81(\xb6I\xaa\x90\x0f'}\x07\xa1P\xd9\xb7\xcb"
 DEFAULT_ANNOTATION_PROTOCOL = [
     {
         'name': "Important",
-        'color': "#abd9e9" # bleu
+        'color': "#abd9e9", # bleu
+        'priority': 1,
     }, {
         'name': "Mot-clef",
-        'color': "#c2a5cf" # violet
+        'color': "#c2a5cf", # violet
+        'priority': 2
     }, {
         'name': "Commentaire",
-        'color': "#abdda4" # vert
+        'color': "#abdda4", # vert
+        'priority': 1
+
     }, {
         'name': "Trouble",
-        'color': "#fdae61" # orange
+        'color': "#fdae61", # orange
+        'priority': 1
     },# {
 #        name: "Default",
 #        color: "#ffffbf" # jaune
