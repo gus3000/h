@@ -95,11 +95,6 @@ SETTINGS = [
     EnvSetting('h.authority', 'AUTHORITY'),
     EnvSetting('h.bouncer_url', 'BOUNCER_URL'),
 
-    # ID and secret used for the issuer when signing JWT tokens for legacy API
-    # auth.
-    EnvSetting('h.client_id', 'CLIENT_ID'),
-    EnvSetting('h.client_secret', 'CLIENT_SECRET'),
-
     EnvSetting('h.client_url', 'CLIENT_URL'),
     EnvSetting('h.homepage_url', 'HOMEPAGE_URL'),
 
